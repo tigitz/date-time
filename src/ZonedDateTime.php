@@ -18,24 +18,22 @@ use function assert;
 use function intdiv;
 
 /**
- * A date-time with a time-zone in the ISO-8601 calendar system.
- *
- * A ZonedDateTime can be viewed as a LocalDateTime along with a time zone
- * and targets a specific point in time.
+ * @template TTimezone of TimeZone
+ * @implements ZonedDateTimeInterface<TTimezone>
  */
-class ZonedDateTime implements JsonSerializable, Stringable
+class ZonedDateTime implements ZonedDateTimeInterface, Stringable
 {
     /**
      * Private constructor. Use a factory method to obtain an instance.
      *
      * @param LocalDateTime  $localDateTime  The local date-time.
      * @param TimeZoneOffset $timeZoneOffset The time-zone offset from UTC/Greenwich.
-     * @param TimeZone       $timeZone       The time-zone. It is either a TimeZoneRegion if this ZonedDateTime is
+     * @param TTimezone       $timeZone       The time-zone. It is either a TimeZoneRegion if this ZonedDateTime is
      *                                       region-based, or the same instance as the offset if this ZonedDateTime
      *                                       is offset-based.
      * @param Instant        $instant        The instant represented by this ZonedDateTime.
      */
-    private function __construct(
+    public function __construct(
         private readonly LocalDateTime $localDateTime,
         private readonly TimeZoneOffset $timeZoneOffset,
         private readonly TimeZone $timeZone,
@@ -68,8 +66,10 @@ class ZonedDateTime implements JsonSerializable, Stringable
      * - If the local date-time falls in the middle of a gap, then the resulting date-time will be shifted forward
      *   by the length of the gap, and the later offset, typically "summer" time, will be used.
      * - If the local date-time falls in the middle of an overlap, then the offset closest to UTC will be used.
+     *
+     * @param TTimezone $timeZone
      */
-    public static function of(LocalDateTime $dateTime, TimeZone $timeZone): ZonedDateTime
+    public static function of(LocalDateTime $dateTime, TimeZone $timeZone): self
     {
         $dtz = $timeZone->toNativeDateTimeZone();
         $dt = new DateTime((string) $dateTime->withNano(0), $dtz);
@@ -91,11 +91,9 @@ class ZonedDateTime implements JsonSerializable, Stringable
     }
 
     /**
-     * Creates a ZonedDateTime from an instant and a time zone.
-     *
-     * This resolves the instant to a date and time without ambiguity.
+     * @param TTimezone $timeZone
      */
-    public static function ofInstant(Instant $instant, TimeZone $timeZone): ZonedDateTime
+    public static function ofInstant(Instant $instant, TimeZone $timeZone): self
     {
         $dateTimeZone = $timeZone->toNativeDateTimeZone();
 
@@ -118,24 +116,14 @@ class ZonedDateTime implements JsonSerializable, Stringable
     }
 
     /**
-     * Returns the current date-time in the given time-zone, according to the given clock.
-     *
-     * If no clock is provided, the system clock is used.
+     * @param TTimezone $timeZone
      */
-    public static function now(TimeZone $timeZone, ?Clock $clock = null): ZonedDateTime
+    public static function now(TimeZone $timeZone, ?Clock $clock = null): self
     {
         return ZonedDateTime::ofInstant(Instant::now($clock), $timeZone);
     }
 
-    /**
-     * Obtains an instance of `ZonedDateTime` from a set of date-time fields.
-     *
-     * This method is only useful to parsers.
-     *
-     * @throws DateTimeException      If the zoned date-time is not valid.
-     * @throws DateTimeParseException If required fields are missing from the result.
-     */
-    public static function from(DateTimeParseResult $result): ZonedDateTime
+    public static function from(DateTimeParseResult $result): self
     {
         $localDateTime = LocalDateTime::from($result);
 
@@ -167,7 +155,7 @@ class ZonedDateTime implements JsonSerializable, Stringable
      * @throws DateTimeException      If the date is not valid.
      * @throws DateTimeParseException If the text string does not follow the expected format.
      */
-    public static function parse(string $text, ?DateTimeParser $parser = null): ZonedDateTime
+    public static function parse(string $text, ?DateTimeParser $parser = null): self
     {
         if ($parser === null) {
             $parser = IsoParsers::zonedDateTime();
@@ -176,12 +164,7 @@ class ZonedDateTime implements JsonSerializable, Stringable
         return ZonedDateTime::from($parser->parse($text));
     }
 
-    /**
-     * Creates a ZonedDateTime from a native DateTime or DateTimeImmutable object.
-     *
-     * @throws DateTimeException If the DateTime object has no timezone.
-     */
-    public static function fromNativeDateTime(DateTimeInterface $dateTime): ZonedDateTime
+    public static function fromNativeDateTime(DateTimeInterface $dateTime): self
     {
         $localDateTime = LocalDateTime::fromNativeDateTime($dateTime);
 
@@ -206,25 +189,16 @@ class ZonedDateTime implements JsonSerializable, Stringable
         return new ZonedDateTime($localDateTime, $timeZoneOffset, $timeZone, $instant);
     }
 
-    /**
-     * Returns the `LocalDateTime` part of this `ZonedDateTime`.
-     */
     public function getDateTime(): LocalDateTime
     {
         return $this->localDateTime;
     }
 
-    /**
-     * Returns the `LocalDate` part of this `ZonedDateTime`.
-     */
     public function getDate(): LocalDate
     {
         return $this->localDateTime->getDate();
     }
 
-    /**
-     * Returns the `LocalTime` part of this `ZonedDateTime`.
-     */
     public function getTime(): LocalTime
     {
         return $this->localDateTime->getTime();
@@ -299,17 +273,11 @@ class ZonedDateTime implements JsonSerializable, Stringable
         return $this->instant->getNano();
     }
 
-    /**
-     * Returns the time-zone, region or offset.
-     */
     public function getTimeZone(): TimeZone
     {
         return $this->timeZone;
     }
 
-    /**
-     * Returns the time-zone offset.
-     */
     public function getTimeZoneOffset(): TimeZoneOffset
     {
         return $this->timeZoneOffset;
@@ -320,124 +288,72 @@ class ZonedDateTime implements JsonSerializable, Stringable
         return $this->instant;
     }
 
-    /**
-     * Returns a copy of this ZonedDateTime with a different date.
-     */
-    public function withDate(LocalDate $date): ZonedDateTime
+    public function withDate(LocalDate $date): self
     {
         return ZonedDateTime::of($this->localDateTime->withDate($date), $this->timeZone);
     }
 
-    /**
-     * Returns a copy of this ZonedDateTime with a different time.
-     */
-    public function withTime(LocalTime $time): ZonedDateTime
+    public function withTime(LocalTime $time): self
     {
         return ZonedDateTime::of($this->localDateTime->withTime($time), $this->timeZone);
     }
 
-    /**
-     * Returns a copy of this ZonedDateTime with the year altered.
-     */
-    public function withYear(int $year): ZonedDateTime
+    public function withYear(int $year): self
     {
         return ZonedDateTime::of($this->localDateTime->withYear($year), $this->timeZone);
     }
 
-    /**
-     * Returns a copy of this ZonedDateTime with the month-of-year altered.
-     */
-    public function withMonth(int|Month $month): ZonedDateTime
+    public function withMonth(int|Month $month): self
     {
         return ZonedDateTime::of($this->localDateTime->withMonth($month), $this->timeZone);
     }
 
-    /**
-     * Returns a copy of this ZonedDateTime with the day-of-month altered.
-     */
-    public function withDay(int $day): ZonedDateTime
+    public function withDay(int $day): self
     {
         return ZonedDateTime::of($this->localDateTime->withDay($day), $this->timeZone);
     }
 
-    /**
-     * Returns a copy of this ZonedDateTime with the hour-of-day altered.
-     */
-    public function withHour(int $hour): ZonedDateTime
+    public function withHour(int $hour): self
     {
         return ZonedDateTime::of($this->localDateTime->withHour($hour), $this->timeZone);
     }
 
-    /**
-     * Returns a copy of this ZonedDateTime with the minute-of-hour altered.
-     */
-    public function withMinute(int $minute): ZonedDateTime
+    public function withMinute(int $minute): self
     {
         return ZonedDateTime::of($this->localDateTime->withMinute($minute), $this->timeZone);
     }
 
-    /**
-     * Returns a copy of this ZonedDateTime with the second-of-minute altered.
-     */
-    public function withSecond(int $second): ZonedDateTime
+    public function withSecond(int $second): self
     {
         return ZonedDateTime::of($this->localDateTime->withSecond($second), $this->timeZone);
     }
 
-    /**
-     * Returns a copy of this ZonedDateTime with the nano-of-second altered.
-     */
-    public function withNano(int $nano): ZonedDateTime
+    public function withNano(int $nano): self
     {
         return ZonedDateTime::of($this->localDateTime->withNano($nano), $this->timeZone);
     }
 
-    /**
-     * Returns a copy of this `ZonedDateTime` with a different time-zone,
-     * retaining the local date-time if possible.
-     */
-    public function withTimeZoneSameLocal(TimeZone $timeZone): ZonedDateTime
+    public function withTimeZoneSameLocal(TimeZone $timeZone): self
     {
         return ZonedDateTime::of($this->localDateTime, $timeZone);
     }
 
-    /**
-     * Returns a copy of this date-time with a different time-zone, retaining the instant.
-     */
-    public function withTimeZoneSameInstant(TimeZone $timeZone): ZonedDateTime
+    public function withTimeZoneSameInstant(TimeZone $timeZone): self
     {
         return ZonedDateTime::ofInstant($this->instant, $timeZone);
     }
 
-    /**
-     * Returns a copy of this date-time with the time-zone set to the offset.
-     *
-     * This returns a zoned date-time where the time-zone is the same as `getOffset()`.
-     * The local date-time, offset and instant of the result will be the same as in this date-time.
-     *
-     * Setting the date-time to a fixed single offset means that any future
-     * calculations, such as addition or subtraction, have no complex edge cases
-     * due to time-zone rules.
-     * This might also be useful when sending a zoned date-time across a network,
-     * as most protocols, such as ISO-8601, only handle offsets, and not region-based time zones.
-     */
-    public function withFixedOffsetTimeZone(): ZonedDateTime
+    public function withFixedOffsetTimeZone(): self
     {
         return ZonedDateTime::of($this->localDateTime, $this->timeZoneOffset);
     }
 
-    /**
-     * Returns a copy of this ZonedDateTime with the specified Period added.
-     */
-    public function plusPeriod(Period $period): ZonedDateTime
+    public function plusPeriod(Period $period): self
     {
         return ZonedDateTime::of($this->localDateTime->plusPeriod($period), $this->timeZone);
     }
 
-    /**
-     * Returns a copy of this ZonedDateTime with the specified Duration added.
-     */
-    public function plusDuration(Duration $duration): ZonedDateTime
+    public function plusDuration(Duration $duration): self
     {
         return ZonedDateTime::ofInstant($this->instant->plus($duration), $this->timeZone);
     }
@@ -461,130 +377,82 @@ class ZonedDateTime implements JsonSerializable, Stringable
         return Duration::between($this->getInstant(), $that->getInstant());
     }
 
-    /**
-     * Returns a copy of this ZonedDateTime with the specified period in years added.
-     */
-    public function plusYears(int $years): ZonedDateTime
+    public function plusYears(int $years) : self
     {
         return ZonedDateTime::of($this->localDateTime->plusYears($years), $this->timeZone);
     }
 
-    /**
-     * Returns a copy of this ZonedDateTime with the specified period in months added.
-     */
-    public function plusMonths(int $months): ZonedDateTime
+    public function plusMonths(int $months): self
     {
         return ZonedDateTime::of($this->localDateTime->plusMonths($months), $this->timeZone);
     }
 
-    /**
-     * Returns a copy of this ZonedDateTime with the specified period in weeks added.
-     */
-    public function plusWeeks(int $weeks): ZonedDateTime
+    public function plusWeeks(int $weeks): self
     {
         return ZonedDateTime::of($this->localDateTime->plusWeeks($weeks), $this->timeZone);
     }
 
-    /**
-     * Returns a copy of this ZonedDateTime with the specified period in days added.
-     */
-    public function plusDays(int $days): ZonedDateTime
+    public function plusDays(int $days): self
     {
         return ZonedDateTime::of($this->localDateTime->plusDays($days), $this->timeZone);
     }
 
-    /**
-     * Returns a copy of this ZonedDateTime with the specified period in hours added.
-     */
-    public function plusHours(int $hours): ZonedDateTime
+    public function plusHours(int $hours): self
     {
         return ZonedDateTime::of($this->localDateTime->plusHours($hours), $this->timeZone);
     }
 
-    /**
-     * Returns a copy of this ZonedDateTime with the specified period in minutes added.
-     */
-    public function plusMinutes(int $minutes): ZonedDateTime
+    public function plusMinutes(int $minutes): self
     {
         return ZonedDateTime::of($this->localDateTime->plusMinutes($minutes), $this->timeZone);
     }
 
-    /**
-     * Returns a copy of this ZonedDateTime with the specified period in seconds added.
-     */
-    public function plusSeconds(int $seconds): ZonedDateTime
+    public function plusSeconds(int $seconds): self
     {
         return ZonedDateTime::of($this->localDateTime->plusSeconds($seconds), $this->timeZone);
     }
 
-    /**
-     * Returns a copy of this ZonedDateTime with the specified Period subtracted.
-     */
-    public function minusPeriod(Period $period): ZonedDateTime
+    public function minusPeriod(Period $period): self
     {
         return $this->plusPeriod($period->negated());
     }
 
-    /**
-     * Returns a copy of this ZonedDateTime with the specified Duration subtracted.
-     */
-    public function minusDuration(Duration $duration): ZonedDateTime
+    public function minusDuration(Duration $duration): self
     {
         return $this->plusDuration($duration->negated());
     }
 
-    /**
-     * Returns a copy of this ZonedDateTime with the specified period in years subtracted.
-     */
-    public function minusYears(int $years): ZonedDateTime
+    public function minusYears(int $years): self
     {
         return $this->plusYears(-$years);
     }
 
-    /**
-     * Returns a copy of this ZonedDateTime with the specified period in months subtracted.
-     */
-    public function minusMonths(int $months): ZonedDateTime
+    public function minusMonths(int $months): self
     {
         return $this->plusMonths(-$months);
     }
 
-    /**
-     * Returns a copy of this ZonedDateTime with the specified period in weeks subtracted.
-     */
-    public function minusWeeks(int $weeks): ZonedDateTime
+    public function minusWeeks(int $weeks): self
     {
         return $this->plusWeeks(-$weeks);
     }
 
-    /**
-     * Returns a copy of this ZonedDateTime with the specified period in days subtracted.
-     */
-    public function minusDays(int $days): ZonedDateTime
+    public function minusDays(int $days): self
     {
         return $this->plusDays(-$days);
     }
 
-    /**
-     * Returns a copy of this ZonedDateTime with the specified period in hours subtracted.
-     */
-    public function minusHours(int $hours): ZonedDateTime
+    public function minusHours(int $hours): self
     {
         return $this->plusHours(-$hours);
     }
 
-    /**
-     * Returns a copy of this ZonedDateTime with the specified period in minutes subtracted.
-     */
-    public function minusMinutes(int $minutes): ZonedDateTime
+    public function minusMinutes(int $minutes): self
     {
         return $this->plusMinutes(-$minutes);
     }
 
-    /**
-     * Returns a copy of this ZonedDateTime with the specified period in seconds subtracted.
-     */
-    public function minusSeconds(int $seconds): ZonedDateTime
+    public function minusSeconds(int $seconds): self
     {
         return $this->plusSeconds(-$seconds);
     }
@@ -598,97 +466,56 @@ class ZonedDateTime implements JsonSerializable, Stringable
      *
      * @psalm-return -1|0|1
      */
-    public function compareTo(ZonedDateTime $that): int
+    public function compareTo(ZonedDateTimeInterface $that) : int
     {
         return $this->instant->compareTo($that->instant);
     }
 
-    /**
-     * Returns whether this ZonedDateTime equals another.
-     *
-     * The comparison is performed on the instant.
-     */
-    public function isEqualTo(ZonedDateTime $that): bool
+    public function isEqualTo(ZonedDateTimeInterface $that): bool
     {
         return $this->compareTo($that) === 0;
     }
 
-    /**
-     * Returns whether this ZonedDateTime is after another.
-     *
-     * The comparison is performed on the instant.
-     */
-    public function isAfter(ZonedDateTime $that): bool
+    public function isAfter(ZonedDateTimeInterface $that): bool
     {
         return $this->compareTo($that) === 1;
     }
 
-    /**
-     * Returns whether this ZonedDateTime is after or equal to another.
-     *
-     * The comparison is performed on the instant.
-     */
-    public function isAfterOrEqualTo(ZonedDateTime $that): bool
+    public function isAfterOrEqualTo(ZonedDateTimeInterface $that): bool
     {
         return $this->compareTo($that) >= 0;
     }
 
-    /**
-     * Returns whether this ZonedDateTime is before another.
-     *
-     * The comparison is performed on the instant.
-     */
-    public function isBefore(ZonedDateTime $that): bool
+    public function isBefore(ZonedDateTimeInterface $that): bool
     {
         return $this->compareTo($that) === -1;
     }
 
-    /**
-     * Returns whether this ZonedDateTime is before or equal to another.
-     *
-     * The comparison is performed on the instant.
-     */
-    public function isBeforeOrEqualTo(ZonedDateTime $that): bool
+    public function isBeforeOrEqualTo(ZonedDateTimeInterface $that): bool
     {
         return $this->compareTo($that) <= 0;
     }
 
-    public function isBetweenInclusive(ZonedDateTime $from, ZonedDateTime $to): bool
+    public function isBetweenInclusive(ZonedDateTimeInterface $from, ZonedDateTimeInterface $to): bool
     {
         return $this->isAfterOrEqualTo($from) && $this->isBeforeOrEqualTo($to);
     }
 
-    public function isBetweenExclusive(ZonedDateTime $from, ZonedDateTime $to): bool
+    public function isBetweenExclusive(ZonedDateTimeInterface $from, ZonedDateTimeInterface $to): bool
     {
         return $this->isAfter($from) && $this->isBefore($to);
     }
 
-    /**
-     * Returns whether this ZonedDateTime is in the future, according to the given clock.
-     *
-     * If no clock is provided, the system clock is used.
-     */
     public function isFuture(?Clock $clock = null): bool
     {
         return $this->instant->isFuture($clock);
     }
 
-    /**
-     * Returns whether this ZonedDateTime is in the past, according to the given clock.
-     *
-     * If no clock is provided, the system clock is used.
-     */
     public function isPast(?Clock $clock = null): bool
     {
         return $this->instant->isPast($clock);
     }
 
-    /**
-     * Converts this ZonedDateTime to a native DateTime object.
-     *
-     * Note that the native DateTime object supports a precision up to the microsecond,
-     * so the nanoseconds are rounded down to the nearest microsecond.
-     */
     public function toNativeDateTime(): DateTime
     {
         $second = $this->localDateTime->getSecond();
