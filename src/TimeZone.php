@@ -41,10 +41,7 @@ abstract class TimeZone implements Stringable
         return TimeZoneRegion::parse($text);
     }
 
-    public static function utc(): TimeZoneOffset
-    {
-        return TimeZoneOffset::utc();
-    }
+    abstract public static function utc(): self;
 
     /**
      * Returns the unique time-zone ID.
