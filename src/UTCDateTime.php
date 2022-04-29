@@ -42,7 +42,7 @@ class UTCDateTime implements ZonedDateTimeInterface
         }
 
         if (!$parsedZonedDateTime->getTimeZone() instanceof TimeZoneRegion) {
-            $parsedZonedDateTime->withTimeZoneSameInstant(TimeZoneRegion::utc());
+            $parsedZonedDateTime = $parsedZonedDateTime->withTimeZoneSameInstant(TimeZoneRegion::utc());
         }
 
         if (!$parsedZonedDateTime->getTimeZone()->isEqualTo(TimeZoneRegion::utc())) {
