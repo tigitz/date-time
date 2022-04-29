@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Brick\DateTime;
 
+use Brick\DateTime\Parser\DateTimeParseException;
 use Brick\DateTime\Parser\DateTimeParser;
 use Brick\DateTime\Parser\DateTimeParseResult;
 
@@ -13,8 +14,12 @@ class UTCDateTime implements ZonedDateTimeInterface
 {
     private function __construct(private RegionZonedDateTime $zonedDateTime)
     {
+        if (!$zonedDateTime->getTimeZoneOffset()->isEqualTo(TimeZoneOffset::utc())) {
+            throw new \Exception(sprintf('Timezone offset of class "%s" must be "Z". "%s" given', self::class, $zonedDateTime->getTimeZoneOffset()->getId()));
+        }
+
         if (!$zonedDateTime->getTimeZone()->isEqualTo(TimeZoneRegion::utc())) {
-            throw new \Exception(sprintf('Timezone of class "%s" must be UTC. "%s" given', self::class, $zonedDateTime->getTimeZone()->getId()));
+            throw new \Exception(sprintf('Timezone offset of class "%s" must be "Z". "%s" given', self::class, $zonedDateTime->getTimeZoneOffset()->getId()));
         }
     }
 
@@ -30,12 +35,28 @@ class UTCDateTime implements ZonedDateTimeInterface
 
     public static function parse(string $text, ?DateTimeParser $parser = null): self
     {
-        return new self(RegionZonedDateTime::parse($text, $parser));
+        $parsedZonedDateTime = ZonedDateTime::parse($text, $parser);
+
+        if (!$parsedZonedDateTime->getTimeZoneOffset()->isEqualTo(TimeZoneOffset::utc())) {
+            throw new DateTimeParseException(sprintf('Timezone offset of class "%s" must be "%s". "%s" found while parsing.', self::class, TimeZoneOffset::utc(), $parsedZonedDateTime->getTimeZoneOffset()->getId()));
+        }
+
+        if (!$parsedZonedDateTime->getTimeZone() instanceof TimeZoneRegion) {
+            $parsedZonedDateTime->withTimeZoneSameInstant(TimeZoneRegion::utc());
+        }
+
+        if (!$parsedZonedDateTime->getTimeZone()->isEqualTo(TimeZoneRegion::utc())) {
+            throw new DateTimeParseException(sprintf('Timezone region of class "%s" must be "%s". "%s" found while parsing', self::class, TimeZoneRegion::utc(), $parsedZonedDateTime->getTimeZone()->getId()));
+        }
+
+        return new self(RegionZonedDateTime::fromZonedDateTime($parsedZonedDateTime));
     }
 
     public static function parseAndConvert(string $text, ?DateTimeParser $parser = null): self
     {
-        return new self(RegionZonedDateTime::parse($text, $parser)->withTimeZoneSameInstant(TimeZoneRegion::utc()));
+        $parsedZonedDateTime = ZonedDateTime::parse($text, $parser);
+
+        return new self(RegionZonedDateTime::fromZonedDateTime($parsedZonedDateTime->withTimeZoneSameInstant(TimeZoneRegion::utc())));
     }
 
     public function toZonedDateTime(): ZonedDateTime
@@ -60,12 +81,28 @@ class UTCDateTime implements ZonedDateTimeInterface
 
     public static function from(DateTimeParseResult $result): self
     {
-        return new self(RegionZonedDateTime::from($result));
+        $parsedZonedDateTime = ZonedDateTime::from($result);
+
+        if (!$parsedZonedDateTime->getTimeZoneOffset()->isEqualTo(TimeZoneOffset::utc())) {
+            throw new DateTimeParseException(sprintf('Timezone offset of class "%s" must be "%s". "%s" found while parsing.', self::class, TimeZoneOffset::utc(), $parsedZonedDateTime->getTimeZoneOffset()->getId()));
+        }
+
+        if (!$parsedZonedDateTime->getTimeZone() instanceof TimeZoneRegion) {
+            $parsedZonedDateTime->withTimeZoneSameInstant(TimeZoneRegion::utc());
+        }
+
+        if (!$parsedZonedDateTime->getTimeZone()->isEqualTo(TimeZoneRegion::utc())) {
+            throw new DateTimeParseException(sprintf('Timezone region of class "%s" must be "%s". "%s" found while parsing', self::class, TimeZoneRegion::utc(), $parsedZonedDateTime->getTimeZone()->getId()));
+        }
+
+        return new self(RegionZonedDateTime::fromZonedDateTime($parsedZonedDateTime));
     }
 
     public static function fromAndConvert(DateTimeParseResult $result): self
     {
-        return new self(RegionZonedDateTime::from($result)->withTimeZoneSameInstant(TimeZoneRegion::utc()));
+        $parsedZonedDateTime = ZonedDateTime::from($result);
+
+        return new self(RegionZonedDateTime::fromZonedDateTime($parsedZonedDateTime->withTimeZoneSameInstant(TimeZoneRegion::utc())));
     }
 
     public static function fromDateTime(\DateTimeInterface $dateTime): self
