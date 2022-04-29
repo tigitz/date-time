@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Brick\DateTime;
 
+use Brick\DateTime\Parser\DateTimeParseException;
 use Brick\DateTime\Parser\DateTimeParser;
 use Brick\DateTime\Parser\DateTimeParseResult;
 
@@ -28,6 +29,11 @@ class RegionZonedDateTime implements ZonedDateTimeInterface
         return UTCDateTime::of($this->zonedDateTime->withTimeZoneSameInstant(TimeZoneRegion::utc())->getDateTime());
     }
 
+    public static function fromZonedDateTime(ZonedDateTime $zonedDateTime): self
+    {
+        return new self($zonedDateTime);
+    }
+
     public static function of(LocalDateTime $dateTime, TimeZoneRegion $timeZone): self
     {
         return new self(ZonedDateTime::of($dateTime, $timeZone));
@@ -35,14 +41,15 @@ class RegionZonedDateTime implements ZonedDateTimeInterface
 
     public static function parse(string $text, ?DateTimeParser $parser = null): self
     {
-        return new self(ZonedDateTime::parse($text, $parser));
+        $parsedZonedDateTime = ZonedDateTime::parse($text, $parser);
+
+        if(!$parsedZonedDateTime->getTimeZone() instanceof TimeZoneRegion) {
+            throw new DateTimeParseException(sprintf('"%s" must have a timezone region. None found while parsing "%s"', self::class, $text));
+        }
+
+        return new self($parsedZonedDateTime);
     }
     
-    public function fromZonedDateTime(ZonedDateTimeInterface $zonedDateTime): self
-    {
-        return new self($zonedDateTime);
-    }
-
     public static function ofInstant(Instant $instant, TimeZoneRegion $timeZone): self
     {
         return new self(ZonedDateTime::ofInstant($instant, $timeZone));
@@ -55,7 +62,13 @@ class RegionZonedDateTime implements ZonedDateTimeInterface
 
     public static function from(DateTimeParseResult $result): self
     {
-        return new self(ZonedDateTime::from($result));
+        $parsedZonedDateTime = ZonedDateTime::from($result);
+
+        if(!$parsedZonedDateTime->getTimeZone() instanceof TimeZoneRegion) {
+            throw new DateTimeParseException(sprintf('"%s" must have a timezone region. None found while parsing "%s"', self::class, $text));
+        }
+
+        return new self($parsedZonedDateTime);
     }
 
     public static function fromDateTime(\DateTimeInterface $dateTime): self
