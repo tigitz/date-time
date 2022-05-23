@@ -43,6 +43,10 @@ class RegionZonedDateTime implements ZonedDateTimeInterface
     {
         $parsedZonedDateTime = ZonedDateTime::parse($text, $parser);
 
+        if ($parsedZonedDateTime->getTimeZoneOffset()->isEqualTo(TimeZoneOffset::utc())) {
+            $parsedZonedDateTime->withTimeZoneSameInstant(TimeZoneRegion::utc());
+        }
+
         if(!$parsedZonedDateTime->getTimeZone() instanceof TimeZoneRegion) {
             throw new DateTimeParseException(sprintf('"%s" must have a timezone region. None found while parsing "%s"', self::class, $text));
         }
