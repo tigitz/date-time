@@ -21,7 +21,7 @@ use function intdiv;
  * @template TTimezone of TimeZone
  * @implements ZonedDateTimeInterface<TTimezone>
  */
-class ZonedDateTime implements ZonedDateTimeInterface, Stringable
+class ZonedDateTime implements ZonedDateTimeInterface
 {
     /**
      * Private constructor. Use a factory method to obtain an instance.

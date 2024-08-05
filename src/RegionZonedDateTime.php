@@ -100,7 +100,7 @@ class RegionZonedDateTime implements ZonedDateTimeInterface
         return $this->zonedDateTime->getYear();
     }
 
-    public function getMonth(): int
+    public function getMonth(): Month
     {
         return $this->zonedDateTime->getMonth();
     }
@@ -355,14 +355,14 @@ class RegionZonedDateTime implements ZonedDateTimeInterface
         return $this->zonedDateTime->isPast($clock);
     }
 
-    public function toDateTime(): \DateTime
+    public function toNativeDateTime(): \DateTime
     {
-        return $this->zonedDateTime->toDateTime();
+        return $this->zonedDateTime->toNativeDateTime();
     }
 
-    public function toDateTimeImmutable(): \DateTimeImmutable
+    public function toNativeDateTimeImmutable(): \DateTimeImmutable
     {
-        return $this->zonedDateTime->toDateTimeImmutable();
+        return $this->zonedDateTime->toNativeDateTimeImmutable();
     }
 
     public function jsonSerialize(): string

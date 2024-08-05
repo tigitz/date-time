@@ -14,7 +14,7 @@ use Brick\DateTime\Parser\DateTimeParseResult;
  *
  * @template TTimezone of Timezone
  */
-interface ZonedDateTimeInterface extends \JsonSerializable
+interface ZonedDateTimeInterface extends \JsonSerializable, \Stringable
 {
     /**
      * Returns the `LocalDateTime` part of this `ZonedDateTime`.
@@ -33,9 +33,7 @@ interface ZonedDateTimeInterface extends \JsonSerializable
 
     public function getYear(): int;
 
-    public function getMonth(): int;
-
-    public function getDay(): int;
+    public function getMonth(): Month;
 
     public function getDayOfWeek(): DayOfWeek;
 
@@ -293,9 +291,9 @@ interface ZonedDateTimeInterface extends \JsonSerializable
      * Note that the native DateTime object supports a precision up to the microsecond,
      * so the nanoseconds are rounded down to the nearest microsecond.
      */
-    public function toDateTime(): \DateTime;
+    public function toNativeDateTime(): \DateTime;
 
-    public function toDateTimeImmutable(): \DateTimeImmutable;
+    public function toNativeDateTimeImmutable(): \DateTimeImmutable;
 
     /**
      * Serializes as a string using {@see ZonedDateTime::__toString()}.
